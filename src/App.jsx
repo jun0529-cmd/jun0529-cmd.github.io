@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { auth, loginWithGoogle, logout, onAuthChange, saveChecks, loadChecks, saveRoutines, loadRoutines, loadWeekChecks } from "./firebase";
+import NotificationSettings, { initNotifications } from "./Notifications";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "./firebase";
 
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -134,6 +137,7 @@ export default function App() {
   const [form, setForm] = useState({ label: "", category: "공부", note: "", time: "" });
   const [loading, setLoading] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
+  const [showNotif, setShowNotif] = useState(false);
   const prevPct = useRef(0);
   const today = getDateStr(0);
 
@@ -149,6 +153,9 @@ export default function App() {
         const dates = Array.from({length: 30}, (_, i) => getDateStr(-i));
         const wc = await loadWeekChecks(u.uid, dates);
         setAllChecks(wc);
+        // Init notifications
+        const nSnap = await getDoc(doc(db, "users", u.uid, "config", "notifications"));
+        if (nSnap.exists()) initNotifications(nSnap.data().schedules);
         setLoading(false);
       }
     });
@@ -285,6 +292,9 @@ export default function App() {
         </div>
       )}
 
+      {/* Notification Modal */}
+      {showNotif && <NotificationSettings onClose={() => setShowNotif(false)} />}
+
       {/* HEADER */}
       <div style={{ background:T.surface, borderBottom:`1px solid ${T.border}`, paddingTop:"max(env(safe-area-inset-top,0px),16px)", padding:"max(env(safe-area-inset-top,0px),16px) 20px 0" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
@@ -317,6 +327,9 @@ export default function App() {
                 <span style={{ fontSize:13, fontWeight:800, color:ringColor, lineHeight:1 }}>{pct}%</span>
               </div>
             </div>
+
+            {/* Notification bell */}
+            <button onClick={() => setShowNotif(true)} style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:10, width:36, height:36, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:16 }}>🔔</button>
 
             {/* User */}
             <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
