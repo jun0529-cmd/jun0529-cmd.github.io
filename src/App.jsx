@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { auth, loginWithGoogle, logout, onAuthChange, saveChecks, loadChecks, saveRoutines, loadRoutines, loadWeekChecks } from "./firebase";
 import NotificationSettings, { initNotifications } from "./Notifications";
+import Onboarding from "./Onboarding";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -138,6 +139,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const prevPct = useRef(0);
   const today = getDateStr(0);
 
@@ -147,7 +149,12 @@ export default function App() {
       if (u) {
         setLoading(true);
         const r = await loadRoutines(u.uid);
-        if (r) setRoutines(r);
+        if (r) {
+          setRoutines(r);
+        } else {
+          // New user — show onboarding
+          setShowOnboarding(true);
+        }
         const c = await loadChecks(u.uid, today);
         setChecks(c);
         const dates = Array.from({length: 30}, (_, i) => getDateStr(-i));
@@ -258,6 +265,16 @@ export default function App() {
         </div>
       </div>
     );
+  }
+
+  async function handleOnboardingSelect(selectedRoutines) {
+    setShowOnboarding(false);
+    await updateRoutines(selectedRoutines);
+  }
+
+  // Onboarding screen
+  if (showOnboarding) {
+    return <Onboarding onSelect={handleOnboardingSelect} />;
   }
 
   const circumference = 2 * Math.PI * 24;
